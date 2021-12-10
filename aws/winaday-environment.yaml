@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Creates an environment for the winaday service
+
+Resources:
+
+  WinADayTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: "winaday"
+      AttributeDefinitions:
+        - 
+          AttributeName: "Key"
+          AttributeType: "S"
+        - 
+          AttributeName: "SortKey"
+          AttributeType: "S"
+      KeySchema:
+        - 
+          AttributeName: "Key"
+          KeyType: "HASH"
+        - 
+          AttributeName: "SortKey"
+          KeyType: "RANGE"
+      BillingMode: PAY_PER_REQUEST
