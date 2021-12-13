@@ -25,7 +25,7 @@ func isDateValid(date string) bool {
 }
 
 func isWinTextValid(text string) bool {
-	if len(text) == 0 || len(text) > 1000 {
+	if len(text) > 1000 {
 		return false
 	}
 

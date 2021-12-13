@@ -65,7 +65,7 @@ func handlePostWin(c *gin.Context, userId string, email string) {
 		return
 	}
 	if !isWinTextValid(win.Text) {
-		err := fmt.Errorf("invalid value '%s' for 'text', should be between 0 and 1000 characters long", win.Text)
+		err := fmt.Errorf("invalid value '%s' for 'text', should be less than 1000 characters long", win.Text)
 		toBadRequest(c, err)
 		return
 	}
