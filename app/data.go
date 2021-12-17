@@ -22,6 +22,7 @@ var (
 	WIN_TABLE_SORT_KEY              string = "SortKey"
 	WIN_TABLE_TEXT_ATTR             string = "text"
 	WIN_TABLE_OVERALL_ATTR          string = "overall"
+	WIN_TABLE_USER_ID_ATTR          string = "userId"
 	WIN_TABLE_USER_EMAIL_ATTR       string = "email"
 	WIN_TABLE_LAST_ACCESSED_AT_ATTR string = "accessedAt"
 )
@@ -42,7 +43,7 @@ func updateUserProfile(userId string, email string, lastAccessed string) error {
 
 	// define keys
 	hashKey := "USER"
-	sortKey := userId
+	sortKey := email
 
 	// query input
 	input := &dynamodb.PutItemInput{
@@ -50,7 +51,7 @@ func updateUserProfile(userId string, email string, lastAccessed string) error {
 		Item: map[string]types.AttributeValue{
 			WIN_TABLE_KEY:                   &types.AttributeValueMemberS{Value: hashKey},
 			WIN_TABLE_SORT_KEY:              &types.AttributeValueMemberS{Value: sortKey},
-			WIN_TABLE_USER_EMAIL_ATTR:       &types.AttributeValueMemberS{Value: email},
+			WIN_TABLE_USER_ID_ATTR:          &types.AttributeValueMemberS{Value: userId},
 			WIN_TABLE_LAST_ACCESSED_AT_ATTR: &types.AttributeValueMemberS{Value: lastAccessed},
 		},
 		ReturnValues: types.ReturnValueNone,
