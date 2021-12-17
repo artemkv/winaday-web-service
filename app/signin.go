@@ -46,14 +46,6 @@ func handleSignIn(c *gin.Context) {
 		return
 	}
 
-	// update user email/last accessed date
-	err = updateUserProfile(userId, userEmail, generateTimestamp())
-	if err != nil {
-		log.Printf("%v", err)
-		toUnauthorized(c)
-		return
-	}
-
 	// generate session
 	session, err := generateSession(userId, userEmail)
 	if err != nil {

@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -17,54 +16,17 @@ import (
 )
 
 var (
-	WIN_TABLE_NAME                  string = "winaday"
-	WIN_TABLE_KEY                   string = "Key"
-	WIN_TABLE_SORT_KEY              string = "SortKey"
-	WIN_TABLE_TEXT_ATTR             string = "text"
-	WIN_TABLE_OVERALL_ATTR          string = "overall"
-	WIN_TABLE_USER_ID_ATTR          string = "userId"
-	WIN_TABLE_USER_EMAIL_ATTR       string = "email"
-	WIN_TABLE_LAST_ACCESSED_AT_ATTR string = "accessedAt"
+	WIN_TABLE_NAME         string = "winaday"
+	WIN_TABLE_KEY          string = "Key"
+	WIN_TABLE_SORT_KEY     string = "SortKey"
+	WIN_TABLE_TEXT_ATTR    string = "text"
+	WIN_TABLE_OVERALL_ATTR string = "overall"
 )
 
 type winItem struct {
 	SortKey string
 	Text    string
 	Overall string
-}
-
-func updateUserProfile(userId string, email string, lastAccessed string) error {
-	// get service
-	cfg, err := config.LoadDefaultConfig(context.TODO())
-	if err != nil {
-		return logAndConvertError(err)
-	}
-	svc := dynamodb.NewFromConfig(cfg)
-
-	// define keys
-	hashKey := "USER"
-	sortKey := email
-
-	// query input
-	input := &dynamodb.PutItemInput{
-		TableName: aws.String(WIN_TABLE_NAME),
-		Item: map[string]types.AttributeValue{
-			WIN_TABLE_KEY:                   &types.AttributeValueMemberS{Value: hashKey},
-			WIN_TABLE_SORT_KEY:              &types.AttributeValueMemberS{Value: sortKey},
-			WIN_TABLE_USER_ID_ATTR:          &types.AttributeValueMemberS{Value: userId},
-			WIN_TABLE_LAST_ACCESSED_AT_ATTR: &types.AttributeValueMemberS{Value: lastAccessed},
-		},
-		ReturnValues: types.ReturnValueNone,
-	}
-
-	// run query
-	_, err = svc.PutItem(context.TODO(), input)
-	if err != nil {
-		return logAndConvertError(err)
-	}
-
-	// done
-	return nil
 }
 
 func updateWin(userId string, date string, win winData) error {
@@ -172,8 +134,4 @@ func getWin(userId string, date string) (*winData, error) {
 func logAndConvertError(err error) error {
 	log.Printf("%v", err)
 	return fmt.Errorf("service unavailable")
-}
-
-func generateTimestamp() string {
-	return time.Now().Format(time.RFC3339)
 }

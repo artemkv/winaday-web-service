@@ -1,5 +1,4 @@
 - --encode data--
-- --Store basic account info on sign-in: email and last accessed date time--
 
 - Cache responses
 - Use rate limiter
