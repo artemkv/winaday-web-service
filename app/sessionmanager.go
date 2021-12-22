@@ -6,9 +6,7 @@ import (
 	"time"
 )
 
-// TODO: temp debug code
-// var SESSION_DURATION = time.Duration(60) * time.Minute
-var SESSION_DURATION = time.Duration(1) * time.Minute
+var SESSION_DURATION = time.Duration(60) * time.Minute
 
 type sessionData struct {
 	UserId  string `json:"uid" binding:"required"`
