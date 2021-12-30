@@ -80,10 +80,24 @@ func keyFunc(token *jwt.Token) (interface{}, error) {
 	}
 	key, ok := keySet.LookupKeyID(kid)
 	if !ok {
-		return nil, fmt.Errorf("could not find key matching 'kid' '%v' in header", kid)
+		err := refreshKeys() // first try to refresh keys
+		if err != nil {
+			return nil, fmt.Errorf("could not refresh Google API keys")
+		}
+		key, ok = keySet.LookupKeyID(kid) // try looking up the key again
+		if !ok {
+			// this time give up
+			return nil, fmt.Errorf("could not find key matching 'kid' '%v' in header", kid)
+		}
 	}
 
 	var rawKey interface{}
 	err := key.Raw(&rawKey)
 	return rawKey, err
+}
+
+func refreshKeys() error {
+	var err error
+	keySet, err = jwk.Fetch(context.Background(), googleApisKeysUrl)
+	return err
 }
