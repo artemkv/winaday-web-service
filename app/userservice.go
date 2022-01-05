@@ -9,7 +9,6 @@ import (
 	"github.com/lestrrat-go/jwx/jwk"
 )
 
-// TODO: use your own config
 var googleApisKeysUrl = "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"
 var tokenIssuer = "https://securetoken.google.com/winaday-afabd"
 var tokenAudience = "winaday-afabd"

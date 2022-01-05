@@ -43,6 +43,11 @@ func SetupRouter(router *gin.Engine, allowedOrigin string) {
 	router.POST("/win/:dt", reststats.HandleEndpointWithStats(
 		withAuthentication(handlePostWin)))
 
+	router.GET("/priorities", reststats.HandleEndpointWithStats(
+		withAuthentication(handleGetPriorities)))
+	router.POST("/priorities", reststats.HandleEndpointWithStats(
+		withAuthentication(handlePostPriorities)))
+
 	// handle 404
 	router.NoRoute(reststats.HandleWithStats(notFoundHandler()))
 }
@@ -113,4 +118,8 @@ func notFoundHandler() gin.HandlerFunc {
 
 func handleError(c *gin.Context) {
 	panic("Test error")
+}
+
+func generateTimestamp() string {
+	return time.Now().Format(time.RFC3339)
 }

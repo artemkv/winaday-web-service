@@ -39,3 +39,47 @@ func isWinOverallResultValid(r int) bool {
 
 	return true
 }
+
+func isWinPriorotyListValid(priorities []string) bool {
+	if len(priorities) > 100 {
+		return false
+	}
+
+	for _, p := range priorities {
+		if p == "" || len(p) > 100 {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isPriorityListLengthValid(priorities priorityListData) bool {
+	active := 0
+	total := 0
+
+	for _, p := range priorities.Items {
+		if !p.IsDeleted {
+			active++
+		}
+		total++
+	}
+
+	return active <= 9 && total <= 200
+}
+
+func isPriorityTextValid(text string) bool {
+	if len(text) > 100 {
+		return false
+	}
+
+	return true
+}
+
+func isPriorityIdValid(id string) bool {
+	return id != "" && len(id) < 100
+}
+
+func isPriorityColorValid(color int) bool {
+	return color >= 0 && color < 100
+}

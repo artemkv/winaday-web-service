@@ -1,5 +1,9 @@
 - --encode data--
-
+- --validate priorities, max 9 non-deleted, max 200 total, max 100 chars of text, non-empty ids and less than 100 chars, and numeric color within allowed range--
+- --encode/decode priority text--
+- --store max 100 priorities, including deleted ones. When more that 100, drop deleted, if not enough, drop active--
+- --allow max 100 priorities linked to a win--
+- --set win priorities to empty array if null upon retrieval--
 
 - Cache responses
 - Use rate limiter
