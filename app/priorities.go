@@ -10,7 +10,7 @@ type priorityListData struct {
 	Items []priorityData `json:"items"`
 }
 
-// When adding properties here, do not forget to update encode/decode functions!
+// When adding properties here, do not forget to update encode/decode functions and mapping back upon retrieval from DynamoDB!
 type priorityData struct {
 	Id        string `json:"id"`
 	Text      string `json:"text"`

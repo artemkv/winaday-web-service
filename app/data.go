@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -37,7 +36,14 @@ type winItem struct {
 
 type prioritiesListItem struct {
 	SortKey string
-	Items   string
+	Items   []priorityItem
+}
+
+type priorityItem struct {
+	Id        string
+	Text      string
+	Color     int
+	IsDeleted bool
 }
 
 func updateWin(userId string, date string, win winData) error {
@@ -56,6 +62,11 @@ func updateWin(userId string, date string, win winData) error {
 	text := base64.StdEncoding.EncodeToString([]byte(win.Text))
 	overallResult := strconv.Itoa(win.OverallResult)
 
+	priorities, err := attributevalue.MarshalList(win.Priorities)
+	if err != nil {
+		return logAndConvertError(err)
+	}
+
 	// query input
 	input := &dynamodb.PutItemInput{
 		TableName: aws.String(WIN_TABLE_NAME),
@@ -64,7 +75,7 @@ func updateWin(userId string, date string, win winData) error {
 			WIN_TABLE_SORT_KEY:         &types.AttributeValueMemberS{Value: sortKey},
 			WIN_TABLE_TEXT_ATTR:        &types.AttributeValueMemberS{Value: text},
 			WIN_TABLE_OVERALL_ATTR:     &types.AttributeValueMemberN{Value: overallResult},
-			WIN_TABLE_ITEMS_PRIORITIES: &types.AttributeValueMemberSS{Value: win.Priorities},
+			WIN_TABLE_ITEMS_PRIORITIES: &types.AttributeValueMemberL{Value: priorities},
 		},
 		ReturnValues: types.ReturnValueNone,
 	}
@@ -158,7 +169,7 @@ func updatePriorities(userId string, priorities priorityListData, updatedAt stri
 	sortKey := userId
 
 	// encode data
-	prioritiesBytes, err := json.Marshal(encodePriorities(priorities.Items, 100))
+	encodedPriorities, err := attributevalue.MarshalList(encodePriorities(priorities.Items, 100))
 	if err != nil {
 		return logAndConvertError(err)
 	}
@@ -169,7 +180,7 @@ func updatePriorities(userId string, priorities priorityListData, updatedAt stri
 		Item: map[string]types.AttributeValue{
 			WIN_TABLE_KEY:             &types.AttributeValueMemberS{Value: hashKey},
 			WIN_TABLE_SORT_KEY:        &types.AttributeValueMemberS{Value: sortKey},
-			WIN_TABLE_ITEMS_ATTR:      &types.AttributeValueMemberS{Value: string(prioritiesBytes)},
+			WIN_TABLE_ITEMS_ATTR:      &types.AttributeValueMemberL{Value: encodedPriorities},
 			WIN_TABLE_UPDATED_AT_ATTR: &types.AttributeValueMemberS{Value: updatedAt},
 		},
 		ReturnValues: types.ReturnValueNone,
@@ -233,12 +244,16 @@ func getPriorities(userId string) (*priorityListData, error) {
 		return nil, logAndConvertError(err)
 	}
 
-	var priorities []priorityData
-	err = json.Unmarshal([]byte(item.Items), &priorities)
-	if err != nil {
-		return nil, logAndConvertError(err)
+	prioritiesToDecode := make([]priorityData, len(item.Items))
+	for i, p := range item.Items {
+		prioritiesToDecode[i] = priorityData{
+			Id:        p.Id,
+			Text:      p.Text,
+			Color:     p.Color,
+			IsDeleted: p.IsDeleted,
+		}
 	}
-	prioritiesDecoded, err := decodePriorities(priorities)
+	prioritiesDecoded, err := decodePriorities(prioritiesToDecode)
 	if err != nil {
 		return nil, logAndConvertError(err)
 	}
