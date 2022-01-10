@@ -43,6 +43,9 @@ func SetupRouter(router *gin.Engine, allowedOrigin string) {
 	router.POST("/win/:dt", reststats.HandleEndpointWithStats(
 		withAuthentication(handlePostWin)))
 
+	router.GET("/wins/:from/:to", reststats.HandleEndpointWithStats(
+		withAuthentication(handleGetWins)))
+
 	router.GET("/priorities", reststats.HandleEndpointWithStats(
 		withAuthentication(handleGetPriorities)))
 	router.POST("/priorities", reststats.HandleEndpointWithStats(

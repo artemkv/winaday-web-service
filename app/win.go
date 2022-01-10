@@ -10,6 +10,20 @@ type dateContainerData struct {
 	Date string `uri:"dt" binding:"required"`
 }
 
+type dateIntervalContainerData struct {
+	From string `uri:"from" binding:"required"`
+	To   string `uri:"to" binding:"required"`
+}
+
+type winListData struct {
+	Items []winOnDayData `json:"items"`
+}
+
+type winOnDayData struct {
+	Date string  `json:"date"`
+	Win  winData `json:"win"`
+}
+
 type winData struct {
 	Text          string   `json:"text"`
 	OverallResult int      `json:"overall"`
@@ -43,9 +57,9 @@ func handleGetWin(c *gin.Context, userId string, email string) {
 	}
 
 	// TODO: this is for testing, remove when no more useful
-	//time.Sleep(300 * time.Millisecond)
-	//toBadRequest(c, fmt.Errorf("Something went wrong returning win"))
-	//return
+	/*time.Sleep(300 * time.Millisecond)
+	toBadRequest(c, fmt.Errorf("Something went wrong returning win"))
+	return*/
 
 	toSuccess(c, win)
 }
@@ -94,4 +108,53 @@ func handlePostWin(c *gin.Context, userId string, email string) {
 	}
 
 	toSuccess(c, win)
+}
+
+func handleGetWins(c *gin.Context, userId string, email string) {
+	// get date from URL
+	var dateIntervalContainer dateIntervalContainerData
+	if err := c.ShouldBindUri(&dateIntervalContainer); err != nil {
+		toBadRequest(c, err)
+		return
+	}
+
+	// sanitize
+	if !isDateValid(dateIntervalContainer.From) {
+		err := fmt.Errorf("invalid value '%s' for 'from'", dateIntervalContainer.From)
+		toBadRequest(c, err)
+		return
+	}
+	if !isDateValid(dateIntervalContainer.To) {
+		err := fmt.Errorf("invalid value '%s' for 'to'", dateIntervalContainer.To)
+		toBadRequest(c, err)
+		return
+	}
+	if !isIntervalValid(dateIntervalContainer.From, dateIntervalContainer.To) {
+		err := fmt.Errorf("invalid value for the interval '%s' - '%s', 'from' should be earlier than 'to', max 50 days allowed", dateIntervalContainer.From, dateIntervalContainer.To)
+		toBadRequest(c, err)
+		return
+	}
+
+	wins, err := getWins(userId, dateIntervalContainer.From, dateIntervalContainer.To)
+	if err != nil {
+		toInternalServerError(c, err.Error())
+		return
+	}
+
+	for _, winOnDay := range wins {
+		if winOnDay.Win.Priorities == nil {
+			winOnDay.Win.Priorities = []string{}
+		}
+	}
+
+	winList := winListData{
+		Items: wins,
+	}
+
+	// TODO: this is for testing, remove when no more useful
+	/*time.Sleep(300 * time.Millisecond)
+	toBadRequest(c, fmt.Errorf("Something went wrong returning win list"))
+	return*/
+
+	toSuccess(c, winList)
 }

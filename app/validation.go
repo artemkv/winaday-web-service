@@ -83,3 +83,26 @@ func isPriorityIdValid(id string) bool {
 func isPriorityColorValid(color int) bool {
 	return color >= 0 && color < 100
 }
+
+func isIntervalValid(from string, to string) bool {
+	start, err := time.Parse("20060102", from)
+	if err != nil {
+		return false
+	}
+
+	end, err := time.Parse("20060102", to)
+	if err != nil {
+		return false
+	}
+
+	if start.After(end) {
+		return false
+	}
+
+	duration := end.Sub(start)
+	if duration.Hours()/24 > 31 {
+		return false
+	}
+
+	return true
+}
