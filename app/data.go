@@ -15,8 +15,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var (
-	// WIN_TABLE_NAME            string = "winaday-test"
+const (
+	OVERALL_DAY_RESULT_NO_WIN_YET           = 0
+	OVERALL_DAY_RESULT_GOT_MY_WIN           = 1
+	OVERALL_DAY_RESULT_COULD_NOT_GET_MY_WIN = 2
+	OVERALL_DAY_RESULT_UNUSED               = 3
+	OVERALL_DAY_RESULT_AWESOME_ACHIEVEMENT  = 4
+)
+
+const (
+	//WIN_TABLE_NAME            string = "winaday-test"
 	WIN_TABLE_NAME            string = "winaday"
 	WIN_TABLE_KEY             string = "Key"
 	WIN_TABLE_SORT_KEY        string = "SortKey"
@@ -419,4 +427,65 @@ func getWins(userId string, from string, to string) ([]winOnDayData, error) {
 
 	// done
 	return wins, nil
+}
+
+// Returns wins [from:to]
+func getWinDays(userId string, from string, to string) ([]string, error) {
+	// get service
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		return nil, logAndConvertError(err)
+	}
+	svc := dynamodb.NewFromConfig(cfg)
+
+	// define keys
+	hashKey := fmt.Sprintf("WIN#%s", userId)
+
+	// query expression
+	projection := expression.NamesList(
+		expression.Name(WIN_TABLE_SORT_KEY),
+		expression.Name(WIN_TABLE_OVERALL_ATTR))
+	expr, err := expression.NewBuilder().WithKeyCondition(
+		expression.KeyAnd(
+			expression.Key(WIN_TABLE_KEY).Equal(expression.Value(hashKey)),
+			expression.KeyBetween(expression.Key(WIN_TABLE_SORT_KEY), expression.Value(from), expression.Value(to))),
+	).WithProjection(projection).Build()
+	if err != nil {
+		return nil, logAndConvertError(err)
+	}
+
+	input := &dynamodb.QueryInput{
+		TableName:                 aws.String(WIN_TABLE_NAME),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		KeyConditionExpression:    expr.KeyCondition(),
+		ProjectionExpression:      expr.Projection(),
+	}
+
+	// run query
+	result, err := svc.Query(context.TODO(), input)
+	if err != nil {
+		return nil, logAndConvertError(err)
+	}
+
+	// re-pack the results
+	days := make([]string, 0, len(result.Items))
+	for _, v := range result.Items {
+		item := winItem{}
+		err = attributevalue.UnmarshalMap(v, &item)
+		if err != nil {
+			return nil, logAndConvertError(err)
+		}
+		overallResult, err := strconv.Atoi(item.Overall)
+		if err != nil {
+			return nil, logAndConvertError(err)
+		}
+		if overallResult == OVERALL_DAY_RESULT_GOT_MY_WIN ||
+			overallResult == OVERALL_DAY_RESULT_AWESOME_ACHIEVEMENT {
+			days = append(days, item.SortKey)
+		}
+	}
+
+	// done
+	return days, nil
 }

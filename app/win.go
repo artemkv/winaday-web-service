@@ -30,6 +30,10 @@ type winData struct {
 	Priorities    []string `json:"priorities"`
 }
 
+type winDayListData struct {
+	Items []string `json:"items"`
+}
+
 func handleGetWin(c *gin.Context, userId string, email string) {
 	// get date from URL
 	var dateContainer dateContainerData
@@ -86,17 +90,23 @@ func handlePostWin(c *gin.Context, userId string, email string) {
 		return
 	}
 	if !isWinTextValid(win.Text) {
-		err := fmt.Errorf("invalid value '%s' for 'text', should be less than 1000 characters long", win.Text)
+		err := fmt.Errorf("invalid value '%s' for 'text', should be less than %d characters long",
+			win.Text,
+			WIN_TEXT_MAX_LENGTH)
 		toBadRequest(c, err)
 		return
 	}
 	if !isWinOverallResultValid(win.OverallResult) {
-		err := fmt.Errorf("invalid value '%s' for 'overall', should be a number in [0:4] range", win.Text)
+		err := fmt.Errorf("invalid value '%s' for 'overall', should be a number in [0:4] range",
+			win.Text)
 		toBadRequest(c, err)
 		return
 	}
-	if !isWinPriorotyListValid(win.Priorities) {
-		err := fmt.Errorf("invalid value '%s' for 'priorities', max 100 items allowed, non-empty and less than 100 characters long", win.Text)
+	if !isWinPriorityListValid(win.Priorities) {
+		err := fmt.Errorf("invalid value '%s' for 'priorities', max %d items allowed, non-empty and less than %d characters long",
+			win.Text,
+			WIN_PRIORITIES_MAX_SIZE,
+			PRIORITY_ID_MAX_LENGTH)
 		toBadRequest(c, err)
 		return
 	}
@@ -129,8 +139,14 @@ func handleGetWins(c *gin.Context, userId string, email string) {
 		toBadRequest(c, err)
 		return
 	}
-	if !isIntervalValid(dateIntervalContainer.From, dateIntervalContainer.To) {
-		err := fmt.Errorf("invalid value for the interval '%s' - '%s', 'from' should be earlier than 'to', max 50 days allowed", dateIntervalContainer.From, dateIntervalContainer.To)
+	if !isIntervalValid(dateIntervalContainer.From,
+		dateIntervalContainer.To,
+		WINS_INTERVAL_REQUESTED_MAX_DAYS) {
+		err := fmt.Errorf(
+			"invalid value for the interval '%s' - '%s', 'from' should be earlier than 'to', max %d days allowed",
+			dateIntervalContainer.From,
+			dateIntervalContainer.To,
+			WINS_INTERVAL_REQUESTED_MAX_DAYS)
 		toBadRequest(c, err)
 		return
 	}
@@ -157,4 +173,54 @@ func handleGetWins(c *gin.Context, userId string, email string) {
 	return*/
 
 	toSuccess(c, winList)
+}
+
+func handleGetWinDays(c *gin.Context, userId string, email string) {
+	// get date from URL
+	var dateIntervalContainer dateIntervalContainerData
+	if err := c.ShouldBindUri(&dateIntervalContainer); err != nil {
+		toBadRequest(c, err)
+		return
+	}
+
+	// sanitize
+	if !isDateValid(dateIntervalContainer.From) {
+		err := fmt.Errorf("invalid value '%s' for 'from'", dateIntervalContainer.From)
+		toBadRequest(c, err)
+		return
+	}
+	if !isDateValid(dateIntervalContainer.To) {
+		err := fmt.Errorf("invalid value '%s' for 'to'", dateIntervalContainer.To)
+		toBadRequest(c, err)
+		return
+	}
+	if !isIntervalValid(
+		dateIntervalContainer.From,
+		dateIntervalContainer.To,
+		WIN_DAYS_INTERVAL_REQUESTED_MAX_DAYS) {
+		err := fmt.Errorf("invalid value for the interval '%s' - '%s', 'from' should be earlier than 'to', max %d days allowed",
+			dateIntervalContainer.From,
+			dateIntervalContainer.To,
+			WIN_DAYS_INTERVAL_REQUESTED_MAX_DAYS)
+		toBadRequest(c, err)
+		return
+	}
+
+	winDays, err := getWinDays(userId, dateIntervalContainer.From, dateIntervalContainer.To)
+	if err != nil {
+		toInternalServerError(c, err.Error())
+		return
+	}
+
+	winDayList := winDayListData{
+		Items: winDays,
+	}
+
+	// TODO: this is for testing, remove when no more useful
+	/*time.Sleep(300 * time.Millisecond)
+	toBadRequest(c, fmt.Errorf("Something went wrong returning win days list"))
+	return*/
+
+	//time.Sleep(2000 * time.Millisecond)
+	toSuccess(c, winDayList)
 }

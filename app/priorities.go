@@ -50,18 +50,23 @@ func handlePostPriorities(c *gin.Context, userId string, email string) {
 
 	// sanitize
 	if !isPriorityListLengthValid(priorities) {
-		err := fmt.Errorf("too many items in a priority list, max 9 active and 100 total allowed")
+		err := fmt.Errorf("too many items in a priority list, max %d active and %d total allowed",
+			PRIORITIES_ACTIVE_MAX_TOTAL,
+			PRIORITIES_MAX_TOTAL)
 		toBadRequest(c, err)
 		return
 	}
 	for _, p := range priorities.Items {
 		if !isPriorityIdValid(p.Id) {
-			err := fmt.Errorf("invalid id, should not be empty and less than 100 characters long")
+			err := fmt.Errorf("invalid id, should not be empty and less than %d characters long",
+				PRIORITY_ID_MAX_LENGTH)
 			toBadRequest(c, err)
 			return
 		}
 		if !isPriorityTextValid(p.Text) {
-			err := fmt.Errorf("invalid value '%s' for 'text', should be less than 100 characters long", p.Text)
+			err := fmt.Errorf("invalid value '%s' for 'text', should be less than %d characters long",
+				p.Text,
+				PRIORITY_TEXT_MAX_LENGTH)
 			toBadRequest(c, err)
 			return
 		}

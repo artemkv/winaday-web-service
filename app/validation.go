@@ -2,6 +2,20 @@ package app
 
 import "time"
 
+const (
+	WIN_TEXT_MAX_LENGTH     = 1000
+	WIN_PRIORITIES_MAX_SIZE = 100
+
+	PRIORITY_ID_MAX_LENGTH   = 100
+	PRIORITY_TEXT_MAX_LENGTH = 100
+
+	PRIORITIES_MAX_TOTAL        = 200
+	PRIORITIES_ACTIVE_MAX_TOTAL = 9
+
+	WINS_INTERVAL_REQUESTED_MAX_DAYS     = 50
+	WIN_DAYS_INTERVAL_REQUESTED_MAX_DAYS = 50
+)
+
 func isUserIdValid(userId string) bool {
 	return userId != ""
 }
@@ -25,7 +39,7 @@ func isDateValid(date string) bool {
 }
 
 func isWinTextValid(text string) bool {
-	if len(text) > 1000 {
+	if len(text) > WIN_TEXT_MAX_LENGTH {
 		return false
 	}
 
@@ -40,13 +54,13 @@ func isWinOverallResultValid(r int) bool {
 	return true
 }
 
-func isWinPriorotyListValid(priorities []string) bool {
-	if len(priorities) > 100 {
+func isWinPriorityListValid(priorities []string) bool {
+	if len(priorities) > WIN_PRIORITIES_MAX_SIZE {
 		return false
 	}
 
 	for _, p := range priorities {
-		if p == "" || len(p) > 100 {
+		if p == "" || len(p) > PRIORITY_ID_MAX_LENGTH {
 			return false
 		}
 	}
@@ -65,11 +79,11 @@ func isPriorityListLengthValid(priorities priorityListData) bool {
 		total++
 	}
 
-	return active <= 9 && total <= 200
+	return active <= PRIORITIES_ACTIVE_MAX_TOTAL && total <= PRIORITIES_MAX_TOTAL
 }
 
 func isPriorityTextValid(text string) bool {
-	if len(text) > 100 {
+	if len(text) > PRIORITY_TEXT_MAX_LENGTH {
 		return false
 	}
 
@@ -77,14 +91,14 @@ func isPriorityTextValid(text string) bool {
 }
 
 func isPriorityIdValid(id string) bool {
-	return id != "" && len(id) < 100
+	return id != "" && len(id) < PRIORITY_ID_MAX_LENGTH
 }
 
 func isPriorityColorValid(color int) bool {
 	return color >= 0 && color < 100
 }
 
-func isIntervalValid(from string, to string) bool {
+func isIntervalValid(from string, to string, maxLength float64) bool {
 	start, err := time.Parse("20060102", from)
 	if err != nil {
 		return false
@@ -100,7 +114,7 @@ func isIntervalValid(from string, to string) bool {
 	}
 
 	duration := end.Sub(start)
-	if duration.Hours()/24 > 31 {
+	if duration.Hours()/24 > maxLength {
 		return false
 	}
 
