@@ -489,3 +489,70 @@ func getWinDays(userId string, from string, to string) ([]string, error) {
 	// done
 	return days, nil
 }
+
+// Returns wins stats [from:to]
+func getWinDayStats(userId string, from string, to string) ([]winOnDayShortData, error) {
+	// get service
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		return nil, logAndConvertError(err)
+	}
+	svc := dynamodb.NewFromConfig(cfg)
+
+	// define keys
+	hashKey := fmt.Sprintf("WIN#%s", userId)
+
+	// query expression
+	projection := expression.NamesList(
+		expression.Name(WIN_TABLE_SORT_KEY),
+		expression.Name(WIN_TABLE_OVERALL_ATTR),
+		expression.Name(WIN_TABLE_PRIORITIES_ATTR))
+	expr, err := expression.NewBuilder().WithKeyCondition(
+		expression.KeyAnd(
+			expression.Key(WIN_TABLE_KEY).Equal(expression.Value(hashKey)),
+			expression.KeyBetween(expression.Key(WIN_TABLE_SORT_KEY), expression.Value(from), expression.Value(to))),
+	).WithProjection(projection).Build()
+	if err != nil {
+		return nil, logAndConvertError(err)
+	}
+
+	input := &dynamodb.QueryInput{
+		TableName:                 aws.String(WIN_TABLE_NAME),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		KeyConditionExpression:    expr.KeyCondition(),
+		ProjectionExpression:      expr.Projection(),
+	}
+
+	// run query
+	result, err := svc.Query(context.TODO(), input)
+	if err != nil {
+		return nil, logAndConvertError(err)
+	}
+
+	// re-pack the results
+	wins := make([]winOnDayShortData, len(result.Items))
+	for i, v := range result.Items {
+		item := winItem{}
+		err = attributevalue.UnmarshalMap(v, &item)
+		if err != nil {
+			return nil, logAndConvertError(err)
+		}
+		overallResult, err := strconv.Atoi(item.Overall)
+		if err != nil {
+			return nil, logAndConvertError(err)
+		}
+		win := winShortData{
+			OverallResult: overallResult,
+			Priorities:    item.Priorities,
+		}
+
+		wins[i] = winOnDayShortData{
+			Date: item.SortKey,
+			Win:  win,
+		}
+	}
+
+	// done
+	return wins, nil
+}
