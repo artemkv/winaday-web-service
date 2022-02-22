@@ -1,6 +1,8 @@
 package app
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	WIN_TEXT_MAX_LENGTH     = 1000
@@ -14,7 +16,7 @@ const (
 
 	WINS_INTERVAL_REQUESTED_MAX_DAYS     = 50
 	WIN_DAYS_INTERVAL_REQUESTED_MAX_DAYS = 50
-	STATS_INTERVAL_REQUESTED_MAX_DAYS    = 50
+	STATS_INTERVAL_REQUESTED_MAX_DAYS    = 90
 )
 
 func isUserIdValid(userId string) bool {
