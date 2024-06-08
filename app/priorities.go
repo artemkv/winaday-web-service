@@ -84,5 +84,8 @@ func handlePostPriorities(c *gin.Context, userId string, email string) {
 		return
 	}
 
+	/*toBadRequest(c, fmt.Errorf("Something went wrong saving priorities"))
+	return*/
+
 	toSuccess(c, priorities)
 }

@@ -34,6 +34,9 @@ type winDayListData struct {
 	Items []string `json:"items"`
 }
 
+type deleteAllResponseData struct {
+}
+
 func handleGetWin(c *gin.Context, userId string, email string) {
 	// get date from URL
 	var dateContainer dateContainerData
@@ -116,6 +119,9 @@ func handlePostWin(c *gin.Context, userId string, email string) {
 		toInternalServerError(c, err.Error())
 		return
 	}
+
+	/*toBadRequest(c, fmt.Errorf("Something went wrong returning win list"))
+	return*/
 
 	toSuccess(c, win)
 }
@@ -223,4 +229,23 @@ func handleGetWinDays(c *gin.Context, userId string, email string) {
 
 	//time.Sleep(2000 * time.Millisecond)
 	toSuccess(c, winDayList)
+}
+
+func handlePostDeleteAllData(c *gin.Context, userId string, email string) {
+	err := deleteAllWins(userId)
+	if err != nil {
+		toInternalServerError(c, err.Error())
+		return
+	}
+
+	err = deletePriorities(userId)
+	if err != nil {
+		toInternalServerError(c, err.Error())
+		return
+	}
+
+	/*toBadRequest(c, fmt.Errorf("Something went wrong returning win list"))
+	return*/
+
+	toSuccess(c, deleteAllResponseData{})
 }

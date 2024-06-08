@@ -56,6 +56,9 @@ func SetupRouter(router *gin.Engine, allowedOrigin string) {
 	router.GET("/winstats/:from/:to", reststats.HandleEndpointWithStats(
 		withAuthentication(handleGetWinStats)))
 
+	router.POST("/deletealldata", reststats.HandleEndpointWithStats(
+		withAuthentication(handlePostDeleteAllData)))
+
 	// handle 404
 	router.NoRoute(reststats.HandleWithStats(notFoundHandler()))
 }

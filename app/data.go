@@ -35,6 +35,8 @@ const (
 	WIN_TABLE_UPDATED_AT_ATTR string = "udpatedAt"
 )
 
+const BATCH_SIZE = 25
+
 type winItem struct {
 	SortKey    string
 	Text       string
@@ -52,6 +54,10 @@ type priorityItem struct {
 	Text      string
 	Color     int
 	IsDeleted bool
+}
+
+type winRefData struct {
+	SortKey string
 }
 
 func updateWin(userId string, date string, win winData) error {
@@ -382,6 +388,7 @@ func getWins(userId string, from string, to string) ([]winOnDayData, error) {
 		return nil, logAndConvertError(err)
 	}
 
+	// query input
 	input := &dynamodb.QueryInput{
 		TableName:                 aws.String(WIN_TABLE_NAME),
 		ExpressionAttributeNames:  expr.Names(),
@@ -555,4 +562,150 @@ func getWinDayStats(userId string, from string, to string) ([]winOnDayShortData,
 
 	// done
 	return wins, nil
+}
+
+func deleteAllWins(userId string) error {
+	// get service
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		return logAndConvertError(err)
+	}
+	svc := dynamodb.NewFromConfig(cfg)
+
+	// define keys
+	hashKey := fmt.Sprintf("WIN#%s", userId)
+
+	// query expression
+	projection := expression.NamesList(
+		expression.Name(WIN_TABLE_SORT_KEY))
+	expr, err := expression.NewBuilder().WithKeyCondition(
+		expression.Key(WIN_TABLE_KEY).Equal(expression.Value(hashKey)),
+	).WithProjection(projection).Build()
+	if err != nil {
+		return logAndConvertError(err)
+	}
+
+	// query input
+	input := &dynamodb.QueryInput{
+		TableName:                 aws.String(WIN_TABLE_NAME),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		KeyConditionExpression:    expr.KeyCondition(),
+		ProjectionExpression:      expr.Projection(),
+	}
+
+	// prepare paginator
+	paginator := dynamodb.NewQueryPaginator(svc, input)
+
+	// init batch
+	batch := make([]string, 0, BATCH_SIZE)
+	batchCnt := 0
+
+	// retrieve everything
+	for paginator.HasMorePages() {
+		nextPage, err := paginator.NextPage(context.TODO())
+		if err != nil {
+			return logAndConvertError(err)
+		}
+
+		for _, item := range nextPage.Items {
+			winRef := winRefData{}
+			err = attributevalue.UnmarshalMap(item, &winRef)
+			if err != nil {
+				return logAndConvertError(err)
+			}
+
+			batch = append(batch, winRef.SortKey)
+			batchCnt = batchCnt + 1
+			if batchCnt == BATCH_SIZE {
+				err = deleteWinsInBatch(userId, batch)
+				if err != nil {
+					return logAndConvertError(err)
+				}
+
+				// reset batch
+				batch = make([]string, 0, BATCH_SIZE)
+				batchCnt = 0
+			}
+		}
+	}
+
+	// last batch
+	if batchCnt > 0 {
+		err = deleteWinsInBatch(userId, batch)
+		if err != nil {
+			return logAndConvertError(err)
+		}
+	}
+
+	return nil
+}
+
+func deleteWinsInBatch(userId string, batch []string) error {
+	// get service
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		return logAndConvertError(err)
+	}
+	svc := dynamodb.NewFromConfig(cfg)
+
+	// define keys
+	hashKey := fmt.Sprintf("WIN#%s", userId)
+
+	requests := make([]types.WriteRequest, 0, BATCH_SIZE)
+	for _, sortKey := range batch {
+		requests = append(requests, types.WriteRequest{
+			DeleteRequest: &types.DeleteRequest{
+				Key: map[string]types.AttributeValue{
+					WIN_TABLE_KEY:      &types.AttributeValueMemberS{Value: hashKey},
+					WIN_TABLE_SORT_KEY: &types.AttributeValueMemberS{Value: sortKey},
+				},
+			},
+		})
+	}
+
+	// query input
+	input := &dynamodb.BatchWriteItemInput{
+		RequestItems: map[string][]types.WriteRequest{
+			WIN_TABLE_NAME: requests,
+		},
+	}
+
+	_, err = svc.BatchWriteItem(context.TODO(), input)
+	if err != nil {
+		return logAndConvertError(err)
+	}
+
+	return nil
+}
+
+func deletePriorities(userId string) error {
+	// get service
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		return logAndConvertError(err)
+	}
+	svc := dynamodb.NewFromConfig(cfg)
+
+	// define keys
+	hashKey := "PRIORITIES"
+	sortKey := userId
+
+	// query input
+	input := &dynamodb.DeleteItemInput{
+		TableName: aws.String(WIN_TABLE_NAME),
+		Key: map[string]types.AttributeValue{
+			WIN_TABLE_KEY:      &types.AttributeValueMemberS{Value: hashKey},
+			WIN_TABLE_SORT_KEY: &types.AttributeValueMemberS{Value: sortKey},
+		},
+	}
+
+	// run query
+	_, err = svc.DeleteItem(context.TODO(), input)
+	if err != nil {
+		return logAndConvertError(err)
+	}
+
+	// done
+	return nil
 }
